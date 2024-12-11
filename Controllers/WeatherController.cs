@@ -82,8 +82,9 @@ namespace WASM_Weather_Server.Controllers
             return Ok(user.Favcity);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost("favcity/add")]
-        [Authorize]
+        //[Authorize]
         public async Task<IActionResult> AddFavCity([FromBody] string city)
         {
             var userName = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

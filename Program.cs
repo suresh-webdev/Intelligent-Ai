@@ -6,6 +6,10 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using WASM_Weather_Server.Data;
 using WASM_Weather_Server.Models;
+using Supabase;
+using Supabase.Gotrue;
+using Supabase.Interfaces;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +24,46 @@ builder.Services.AddCors(options =>
     });
 });
 
+
+builder.Services.AddSingleton(_ =>
+{
+    var url = builder.Configuration["Supabase:Url"];
+    var key = builder.Configuration["Supabase:ApiKey"];
+
+    Console.WriteLine("The api key is" + key);
+    Console.WriteLine("the Url is" + url);
+    var supaOptions = new SupabaseOptions
+    {
+        AutoConnectRealtime = true
+    };
+
+    var supabaseClient = new Supabase.Client(url, key, supaOptions);
+    supabaseClient.InitializeAsync().Wait(); // Ensure async initialization
+
+    // Check Supabase connection
+    try
+    {   
+
+        var currentUser = supabaseClient.Auth.CurrentUser;
+        if (currentUser != null)
+        {
+            Console.WriteLine($"Supabase connected. Authenticated user: {currentUser.Email}");
+        }
+        else
+        {
+            Console.WriteLine("Supabase connected but no authenticated user.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Failed to connect to Supabase: {ex.Message}");
+    }
+
+    return supabaseClient;
+});
+
+
+
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -29,7 +73,7 @@ builder.Services.AddDbContext<SqlDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SQLConnection")));
 
 // Adding Identity for role-based authentication and the required model
-builder.Services.AddIdentity<User, IdentityRole>()
+builder.Services.AddIdentity<WASM_Weather_Server.Models.User, IdentityRole>()
     .AddEntityFrameworkStores<SqlDbContext>()
     .AddDefaultTokenProviders();
 
@@ -113,6 +157,10 @@ using (var scope = app.Services.CreateScope())
     // Seed Roles
     await SeedRoles(roleManager);
 }
+
+
+
+
 
 app.UseHttpsRedirection();
 //app.UseCors("AllowAllOrigins");  // Use correct CORS policy
